@@ -16,6 +16,8 @@ import random
 import numpy as np
 import sys
 
+from tree_Class import *
+
 
 # ---- ---- ---- ---- ---- ----
 # ---- Misc                ----
@@ -40,6 +42,9 @@ def init(_boardname=None):
     game.mainiteration()
     player = game.player
     
+
+
+
 def main():
 
     #for arg in sys.argv:
@@ -50,8 +55,6 @@ def main():
     print (iterations)
 
     init()
-    
-
     
     #-------------------------------
     # Building the matrix
@@ -75,27 +78,28 @@ def main():
     # Building the best path with A*
     #-------------------------------
     
-
-    
-    
         
     #-------------------------------
     # Moving along the path
     #-------------------------------
         
     # bon ici on fait juste un random walker pour exemple...
-    
+
+    #Dimension du terrain
+    colSize = game.spriteBuilder.colsize
+    rowSize = game.spriteBuilder.rowsize
 
     row,col = initStates[0]
     #row2,col2 = (5,5)
-
-    for i in range(iterations):
     
+    tree = Tree(initStates[0],goalStates[0])
+    #chemin = tree.construction_chemin(wallStates, 20)
+    chemin = tree.etoile(initStates[0][0],initStates[0][1],wallStates,  rowSize, colSize)
     
-        x_inc,y_inc = random.choice([(0,1),(0,-1),(1,0),(-1,0)])
-        next_row = row+x_inc
-        next_col = col+y_inc
-        if ((next_row,next_col) not in wallStates) and next_row>=0 and next_row<=20 and next_col>=0 and next_col<=20:
+    for i in range(len(chemin)):
+        next_row, next_col = chemin[i]
+        #print(next_row, next_col)
+        if ((next_row,next_col) not in wallStates) and next_row>=0 and next_row<=rowSize and next_col>=0 and next_col<=colSize:
             player.set_rowcol(next_row,next_col)
             print ("pos 1:",next_row,next_col)
             game.mainiteration()
@@ -103,9 +107,6 @@ def main():
             col=next_col
             row=next_row
 
-            
-        
-            
         # si on a  trouvé l'objet on le ramasse
         if (row,col)==goalStates[0]:
             o = game.player.ramasse(game.layers)
