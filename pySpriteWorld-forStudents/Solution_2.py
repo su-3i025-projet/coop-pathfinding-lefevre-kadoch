@@ -16,7 +16,7 @@ from tree_Class import *
 import random 
 import numpy as np
 import sys
-
+import math
     
 # ---- ---- ---- ---- ---- ----
 # ---- Main                ----
@@ -27,15 +27,14 @@ game = Game()
 def init(_boardname=None):
     global player,game
     # pathfindingWorld_MultiPlayer4
-    name = _boardname if _boardname is not None else "pathfindingWorld_MultiPlayer4"
+    name = _boardname if _boardname is not None else "soluce_2"
     game = Game('Cartes/' + name + '.json', SpriteBuilder)
     game.O = Ontology(True, 'SpriteSheet-32x32/tiny_spritesheet_ontology.csv')
     game.populate_sprite_names(game.O)
-    game.fps = 15# frames per second
+    game.fps = 5# frames per second
     game.mainiteration()
     game.mask.allow_overlaping_players = True
     #player = game.player
-
 
 def collision(chemin1,chemin2): 
     for pos in chemin1:
@@ -44,6 +43,16 @@ def collision(chemin1,chemin2):
             return True
     return False
 
+def tempsExec(chemins):
+    somme = 0
+    max_t = len(chemins[0])
+    for chemin in chemins:
+        if chemin == None:
+            return math.inf, math.inf 
+        somme+=len(chemin)
+        if len(chemin)>max_t:
+            max_t = len(chemin)
+    return somme, max_t
 
 def conditionZone(next_row, next_col, wallStates):
     if ((next_row,next_col) not in wallStates) and next_row>0 and next_row<=rowSize and next_col>0 and next_col<=colSize:
@@ -85,11 +94,9 @@ def majChemin(next_row, next_col,  wallStates, chemins, j, posPlayers):
 def main():
 
     #for arg in sys.argv:
-    iterations = 100 # default
+    alea = 0 # default
     if len(sys.argv) == 2:
-        iterations = int(sys.argv[1])
-    print ("Iterations: ")
-    print (iterations)
+        alea = int(sys.argv[1])
 
     init()
 
@@ -117,27 +124,25 @@ def main():
         
     # on localise tous les murs
     wallStates = [w.get_rowcol() for w in game.layers['obstacle']]
-    print ("Wall states:", wallStates)
+    #•print ("Wall states:", wallStates)
     
     #-------------------------------
     # Placement aleatoire des fioles de couleur 
     #-------------------------------
     
     #Exemple de Collision
-    #tuplePos = [(7, 1),(5, 5),(18, 8)]
     i =0
     
     for o in game.layers['ramassable']: # les rouges puis jaunes puis bleues
     # et on met la fiole qqpart au hasard
-        
-        x = random.randint(1,19)
-        y = random.randint(1,19)
-        while (x,y) in wallStates:
-            x = random.randint(1,19)
-            y = random.randint(1,19)
-        
-        #o.set_rowcol(tuplePos[i][0],tuplePos[i][1])
-        #o.set_rowcol(x,y)
+        if alea==1:
+            x = random.randint(1,colSize-2)
+            y = random.randint(1,rowSize-2)
+            while (x,y) in wallStates:
+                x = random.randint(1,colSize-2)
+                y = random.randint(1,rowSize-2)
+            
+            o.set_rowcol(x,y)
         game.layers['ramassable'].add(o)
         game.mainiteration()                
         i+=1
@@ -153,15 +158,13 @@ def main():
     
     posPlayers = initStates
 
-
     chemins = []
     tree_liste = []
-    dict_jchemin = {}
 
     #random.shuffle(goalStates)
     for i in range(nbPlayers):
         tree = Tree(posPlayers[i],goalStates[i])
-        #print("GOAL STATE DE",i," ::",goalStates[i])
+        print("GOAL STATE DE",i," ::",goalStates[i])
         tree_liste.append(tree)
         chemins.append(tree.etoile(initStates[i][0],initStates[i][1],wallStates,rowSize, colSize))
     
@@ -171,19 +174,44 @@ def main():
     #-------------------------------
 
     # initialiser liste_joueurs
-    liste_joueurs = [i for i in range(len(goalStates))]
-        
+    liste_joueurs = [i for i in range(nbPlayers)]
+    
+    sum_ite = 0
+    t_max = 0
+
     while len(liste_joueurs) != 0:
+        
+        print(liste_joueurs)
+        for i in liste_joueurs:
+            tree = Tree(posPlayers[i],goalStates[i])
+            tree_liste.append(tree)
+            chemins[i]=tree.etoile(initStates[i][0],initStates[i][1],wallStates,rowSize, colSize)
+    
         passage = []
         joueur = liste_joueurs.pop(0)
         passage.append(joueur)
+        wallStates.append(chemins[joueur][-1])
+
+        """
+        Creation des differents groupes de passage
+        """
         for j2 in liste_joueurs:
             if collision(chemins[joueur],chemins[j2]) == False:
+                print("joeur ajouter")
                 passage.append(j2)
                 liste_joueurs.remove(j2)
-                
-        chemin_tmp = [len(chemins[j]) for j in passage]
-        for i in range(max(chemin_tmp)):
+                wallStates.append(chemins[j2][-1])
+
+        max_chemin_tmp = [len(chemins[j]) for j in passage]
+        chemin_tmp = [chemins[j] for j in passage]
+        #On recupere le temps total
+        sum_ite_tmp, tmax_tmp = tempsExec(chemin_tmp)
+
+        #Somme des iteration dans chaque groupe de passage + les iterations d'immobilisation des agents
+        sum_ite+=sum_ite_tmp+(len(chemin_tmp)*t_max)
+        t_max += tmax_tmp
+
+        for i in range(max(max_chemin_tmp)):
             for j in passage:
                 row,col = posPlayers[j]
         
@@ -203,31 +231,16 @@ def main():
                         o = players[j].ramasse(game.layers)
                         game.mainiteration()
                         print ("Objet trouvé par le joueur ", j)
-                        goalStates.remove((row,col)) # on enlève ce goalState de la liste
+                        #goalStates.remove((row,col)) # on enlève ce goalState de la liste
                         score[j]+=1
                         #Affectation d'une nouvelle fiole s'il en reste
                         
-                        
-                        """
-                        #Generation d'une nouvelle fiole
-                        # et on remet un même objet à un autre endroit
-                        x = random.randint(1,19)
-                        y = random.randint(1,19)
-                        while (x,y) in wallStates:
-                            x = random.randint(1,19)
-                            y = random.randint(1,19)
-                        o.set_rowcol(x,y)
-                        goalStates.append((x,y)) # on ajoute ce nouveau goalState
-                        game.layers['ramassable'].add(o)
-                        game.mainiteration()
-                        """
                 
     print ("scores:", score)
+    print("Nombre Total d'iteration ::", sum_ite, " Temps total :: ",t_max)
     pygame.quit()
     
 
 if __name__ == '__main__':
     main()
     
-
-
