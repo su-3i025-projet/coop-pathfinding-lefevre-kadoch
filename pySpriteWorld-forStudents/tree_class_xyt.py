@@ -28,18 +28,33 @@ class Tree_space_time:
                return True
           else: return False
 
+     def agent_wall(self,dico,pos,t):
+          """
+          Verifie s'il y a un agent fixe à la futur position du joueur
+               - True s'il n'y en a pas
+               - False s'il y en a bien un 
+          """
+          if len(dico[pos])==0:
+               return True
+          else:
+               if t < min(dico[pos])-1:
+                    return True
+               else:
+                    return False
+
      def distMan (self, noeud):
           """
           Calcul de la distance de Manhattan entre la position du noeud et le but
           """
           return abs(noeud.x-self.but[0])+abs(noeud.y-self.but[1]) 
                
-     def expansion_voisin(self, tabMurs, dico, temps,colSize, rowSize, noeud):
+     def expansion_voisin(self, tabMurs, dico, agentFixe, temps,colSize, rowSize, noeud):
           """ Rend la liste des voisins potentiels du noeud pour le calcul de A*
           
           Pour ce faire:
                - Verifier que la case n'est pas un mur
                - Verifier que cette meme case n'a pas deja étée révervée et quelle ne générera aucune collision
+               - Verifier si un autre agent devenu immobile apres la fin de son execution ne gene pas
           
           Si aucune des cases ne verifient ces conditions on retourne la position initiale du noeud 
           """
@@ -50,28 +65,28 @@ class Tree_space_time:
           canMove = False
           res = []
           
-          if ((x+1<rowSize) and ((x+1,y) not in tabMurs)) and (not self.collision(dico,temps,pos,(x+1,y))): # droite
+          if ((x+1<rowSize) and ((x+1,y) not in tabMurs)) and (not self.collision(dico,temps,pos,(x+1,y))) and self.agent_wall(agentFixe,(x+1,y),temps): # droite
                noeudFils = Node(noeud.distO+1, x+1, y, noeud)
                noeudFils.setH(self.distMan (noeudFils))
                res.append(noeudFils)
                noeud.ajouterEnfant(noeudFils)
                canMove = True
                
-          if ((y+1<colSize) and ((x,y+1)not in tabMurs)) and (not self.collision(dico,temps,pos,(x,y+1))): # haut 
+          if ((y+1<colSize) and ((x,y+1)not in tabMurs)) and (not self.collision(dico,temps,pos,(x,y+1))) and self.agent_wall(agentFixe,(x,y+1),temps): # haut 
                noeudFils = Node(noeud.distO+1, x, y+1, noeud)
                noeudFils.setH(self.distMan (noeudFils))
                res.append(noeudFils)
                noeud.ajouterEnfant(noeudFils)
                canMove = True
 
-          if ((x-1>=0) and ((x-1,y) not in tabMurs))and (not self.collision(dico,temps,pos,(x-1,y))): # gauche
+          if ((x-1>=0) and ((x-1,y) not in tabMurs))and (not self.collision(dico,temps,pos,(x-1,y))) and self.agent_wall(agentFixe,(x-1,y),temps): # gauche
                noeudFils = Node(noeud.distO+1, x-1, y, noeud)
                noeudFils.setH(self.distMan (noeudFils))
                res.append(noeudFils)
                noeud.ajouterEnfant(noeudFils)
                canMove = True
 
-          if ((y-1>=0) and ((x,y-1)not in tabMurs)) and (not self.collision(dico,temps,pos,(x,y-1))): # bas
+          if ((y-1>=0) and ((x,y-1)not in tabMurs)) and (not self.collision(dico,temps,pos,(x,y-1))) and self.agent_wall(agentFixe,(x,y-1),temps): # bas
                noeudFils = Node(noeud.distO+1, x, y-1, noeud)
                noeudFils.setH(self.distMan (noeudFils))
                res.append(noeudFils)
@@ -83,7 +98,13 @@ class Tree_space_time:
                Si on ne peut pas bouger a cet instant t, on fait une pause en créant un
                noeud fils qui a la meme position qu'avant l'expansion
                """
-               noeudFils = Node(noeud.distO+1, x, y, noeud)
+               val = 1
+               #Si l'agent est bloqué par le chemin d'un autre agent et que sa position courante generera une collision au prochain tour
+               #Donner un coup important au noeud pour qu'il ne soit pas revister par l'algo A*
+               if (self.collision(dico,temps,pos,(x,y))):
+                    val = len(dico)
+               print("MISE EN ATTENTE POUR LAISSER PASSER UN AGENT")
+               noeudFils = Node(noeud.distO+val, x, y, noeud)
                noeudFils.setH(self.distMan (noeudFils))
                res.append(noeudFils)
                noeud.ajouterEnfant(noeudFils)
@@ -116,6 +137,7 @@ class Tree_space_time:
                    for _ in range(len(dico)):
                         t+=1
                         dico[chemin[pos]].append(t)
+                        dico[chemin[pos]].append(t+1)
 
 
      def min_f(self, liste):
@@ -145,7 +167,7 @@ class Tree_space_time:
                n_elem,nf = elem
                if n_elem.get_coord() == node.get_coord():
                     if f<nf:
-                         reserve.append(frontier.remove(elem))
+                         #reserve.append(frontier.remove(elem))
                          frontier.append((node,f))
                          return True
                     else:
@@ -160,9 +182,9 @@ class Tree_space_time:
                if (noeud.get_coord() == reserve[i].get_coord()) and (noeud.distO == reserve[i].distO) :
                     return True
           return False
-    
 
-     def etoile(self, x0, y0, tabMurs, dico, rowSize, colSize):
+
+     def etoile(self, x0, y0, tabMurs, dico, agentFixe, rowSize, colSize):
           """Algo de A* """
      
           #print("POSITION INTIALE :: ", (x0,y0))
@@ -179,6 +201,10 @@ class Tree_space_time:
                self.frontier.pop(indice)
                temps = best.distO
 
+               if best.distO > len(dico):
+                    print("BREAK IMPOSSIBLE DE PASSER")
+                    #break
+                    return None
                """
                Ceci permet de gerer les cas ou l'agent se serait bloqué dans un chemin sans issue
                par un autre agent qui aurait deja reservé les places. Il faut donc chercher une autre solution
@@ -191,16 +217,25 @@ class Tree_space_time:
                """
                if self.isInReserve(self.reserve, best) == False:
                     self.reserve.append(best)
-                    newNode = self.expansion_voisin(tabMurs, dico, temps+1, rowSize, colSize, best) # change expansion voisin pour afficher liste
+                    newNode = self.expansion_voisin(tabMurs, dico, agentFixe, temps+1, rowSize, colSize, best) # change expansion voisin pour afficher liste
                     #print ("\nEXPANSION VOISIN -> ",best)
                     for n in newNode :
                          #self.frontier.append((n,n.get_f()))
                          self.addFrontier(self.frontier,self.reserve, n)
 
-          #print("\n",best,"\n-------------------------------------------------------------------\n",self.frontier,"\n-------------------------------------------------------------------\n")
           #Construction du chemin via la methode retropropagation
           #Necessite d'etre inversé car le chemin est créé de la feuille (fiole) à la racine (position initale)
+          
+          #Si on a pas laisser fuir un agent 
+          if len(dico[best.get_coord()])>0 and best.distO <= max(dico[best.get_coord()]):
+               return None
+          
           final = self.retropropagation(best, [])
           final = list(reversed(final))
+
+          #Ajout du chemin au dictionnaire des reservations 
           self.ajout_chemin_dico(final,dico)
+
+          #On ajoute à la position l'instant terminal t pour considerer le joueur comme un mur à partir de ce moment la
+          agentFixe[final[-1]].append(len(final)-1)
           return final
