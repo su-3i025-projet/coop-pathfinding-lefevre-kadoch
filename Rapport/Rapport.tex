@@ -165,13 +165,14 @@ Afin d'implémenter cette première solution, plusieurs fichiers et fonctions on
 - collision : Etant donné deux chemins (listes de cases), renvoie true si ces deux chemins possèdent au moins une case en commun, et false sinon. \\ 
 	
 - main : Le main implémente une liste de joueurs L, et effectue une boucle, tant que cette liste n'est pas vide (cf tant que tous les joueurs ne sont pas passés). Le joueur courant J est le premier élément L et est retiré de cette même liste, et pour chaque joueur J' restant dans la liste, si J et J' ne sont pas en collision on ajoute J' à un groupe de passage représenté par une liste. Une fois ce parcours de joueurs réalisé, on fait passer tous les joueurs du groupe de passage en même temps sans risque de collision.\\
-
+\newpage
 \section{Stratégie Coopérative avancée}
 
-Après avoir implémenter ces solutions, on se demande si elles sont bien toutes viable pour toutes situations ? Sur de grandes cartes avec de larges couloir, nos algorithmes s’en sortent plutôt très bien. En revanche lorsqu’il faut traiter des problèmes de couloir ou un seul et unique agent peut se déplacer dans un block de largeur. Le problème devient tout de suite différent, et  il est nécessaire de revoir les stratégies à leur base. Jusqu'à lors il n’y avait pas une réelle coopération entre les différents agents, mais seulement un moyen d’éviter les collisions. Il fallait donc implémenter une version améliorée de l’algorithme A* pour parvenir à ces problèmes . Pour se faire il a fallut effectuer une recherche plus ou moins exhaustive des différents cas ou l’algorithme de base posait problème.
-\\
+\subsection{contexte}
 
-Exemple de problème:
+Après avoir implémenter ces solutions, on se demande si elles sont bien toutes viable pour toutes situations ? Sur de grandes cartes avec de larges couloir, nos algorithmes s’en sortent plutôt très bien. En revanche lorsqu’il faut traiter des problèmes de couloir ou un seul et unique agent peut se déplacer dans un block de largeur. Le problème devient tout de suite différent, et  il est nécessaire de revoir les stratégies à leur base. Jusqu'à lors il n’y avait pas une réelle coopération entre les différents agents, mais seulement un moyen d’éviter les collisions. Il fallait donc implémenter une version améliorée de l’algorithme A* pour parvenir à ces problèmes . Pour se faire il a fallut effectuer une recherche plus ou moins exhaustive des différents cas ou l’algorithme de base posait problème.
+
+\subsection{Résolution de probleme}
 
 
 \noindent 1 - Comment éviter de prendre un tout autre chemin beaucoup plus long à cause de la rencontre d’un autre agent ?
@@ -192,16 +193,17 @@ Exemple de problème:
      \end{minipage}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
      \centering
      \includegraphics[width=.2\linewidth]{s2_2}
      \caption{problème 2}\label{Fig:3}
 \end{figure}
-\newpage
 Il fallait donc, ajouter une composante temporelle pour pallier à ces problèmes, et passer sur une recherche de chemin à base de réservations de case par les  agents à des instant t précis. En ajoutant cette composante les agents peuvent désormais s’attacher au parcours des autres agents, pas dans leur globalité mais uniquement à certains instants. Ceci permet donc à un agent de rechercher des emplacements d’évitement (lorsqu’il ne peut pas continuer sur son chemin). Ceci l'amène à coopérer avec les autres agents et avoir un coup de chemin qui peut être parfois drastiquement réduit comme on peut le voir sur la figure 1. Dans la figure 2 et 3 il est primordiale de passer par cette méthode car pour les deux agents il s'agit de leur seul et unique cheveux possible.
 \\
 
+\newpage
 
+\subsection{Autres Approches}
 D’autre problème on été mis en jeu notamment, lorsqu’un agent a fini son parcours et se trouve donc à l’emplacement de sa fiole. Que devient il ?\\
 
 Nous avons décidé qu’il deviendrait un mur et qu’il soit considéré tel quel par les autres agents que à partir du moment où il parvient à son but. Il a fallu ajouter à cela un autre dictionnaire référençant les positions final t de chaque agent, traiter différemment le choix de case à chaque étape et que lorsqu’un un agent souhaite accéder à cette case après cet instant t il n’aura désormais plus le droit. 
