@@ -164,7 +164,7 @@ Afin d'implémenter cette première solution, plusieurs fichiers et fonctions on
 - collision : Étant donné deux chemins (listes de cases), renvoie true si ces deux chemins possèdent au moins une case en commun, et false sinon. \\ 
 	
 - main : Le main implémente une liste de joueurs L, et effectue une boucle, tant que cette liste n'est pas vide (cf tant que tous les joueurs ne sont pas passés). Le joueur courant J est le premier élément L et est retiré de cette même liste, et pour chaque joueur J' restant dans la liste, si J et J' ne sont pas en collision on ajoute J' à un groupe de passage représenté par une liste. Une fois ce parcours de joueurs réalisé, on fait passer tous les joueurs du groupe de passage en même temps sans risque de collision.\\
-\newpage
+
 \section{Stratégie Coopérative avancée}
 
 \subsection{contexte}
@@ -217,6 +217,18 @@ Cependant en ajoutant cette dernière spécificité un nouveau problème beaucou
 	\includegraphics[scale=0.3]{s5}
 \end{center}
 
-Une première idée était de détecter les agents qui se retrouvaient bloqués dans la construction de leur chemin en admettant un pallier en terme d’itérations (pas très propre mais semble être la meilleure solution) une fois ces agents détectés, il faut faire en sorte que tout autre agents qui essaye d’accéder aux cases d’un agent dit « en fuite » doivent attendre qu’il passe, en considérant ces cases comme des obstacles temporaires jusqu'à à instant t.
+Une première idée était de détecter les agents qui se retrouvaient bloqués dans la construction de leur chemin en admettant un pallier en terme d’itérations (pas très propre mais semble être la meilleure solution) une fois ces agents détectés, il faut faire en sorte que tout autre agents qui essaye d’accéder aux cases d’un agent dit « en fuite » doivent attendre qu’il passe, en considérant ces cases comme des obstacles temporaires jusqu'à à instant t. Cette approche semble plutôt correcte, mais lorsque l'on augmente le nombre de joueur le problème devient encore plus complexe.\\
+
+Le partage de chemin est d'autant plus complexe, car il faut en plus de cela prendre en compte l'ordre de passage de chaque agent ! Comme effectué dans la solution 2. Malheureusement, cela se fait aussi au compromis de la détection des agents "en fuite".
+
+\section{Optimisation : Recherche du cout minimal}
+
+Le but de ce projet étant également la recherche de chemin minimal (minimisant le cout total pour que chaque agent arrive à sa destination). Une stratégie permet de rechercher l'ordre des réservations des agents minimisant ce cout.  Cet ordre, si il est mal choisie peut amener des agents à faire des attentes non optimale, c'est à dire, que d'autres agents auraient pu faire cette attente à leur place ce qui aurait minimiser le cout total.\\ \\
+
+Méthodes utilisées (Approche Exhaustive):
+
+\noindent- perms: qui prend une liste des agents sur lesquels on veut tester toutes les possibilités. Cette méthode rend alors toutes les permutation possible dans agents, ainsi on pourra tester tous les ordre de réservation possible.
+
+\noindent- main: On fait le traitement de toutes ces combinaisons (en calculant le A* de chaque et en reservant dans l'ordre de chacune des combinaison) et on retourne la permutation qui rend un cout total minimal.
 
 \end{document}
