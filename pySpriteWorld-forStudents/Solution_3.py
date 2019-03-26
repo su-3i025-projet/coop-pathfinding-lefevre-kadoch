@@ -13,6 +13,7 @@ import pygame
 import glo
 from tree_class_xyt import *
 
+import math
 import random 
 import numpy as np
 import sys
@@ -27,11 +28,11 @@ game = Game()
 def init(_boardname=None):
     global player,game
     # pathfindingWorld_MultiPlayer4
-    name = _boardname if _boardname is not None else "couloir_test"
+    name = _boardname if _boardname is not None else "test_partage_chemin2"
     game = Game('Cartes/' + name + '.json', SpriteBuilder)
     game.O = Ontology(True, 'SpriteSheet-32x32/tiny_spritesheet_ontology.csv')
     game.populate_sprite_names(game.O)
-    game.fps = 2# frames per second
+    game.fps = 5# frames per second
     game.mainiteration()
     game.mask.allow_overlaping_players = True
     #player = game.player
@@ -40,6 +41,8 @@ def tempsExec(chemins):
     somme = 0
     max_t = len(chemins[0])
     for chemin in chemins:
+        if chemin == None:
+            return math.inf, math.inf 
         somme+=len(chemin)
         if len(chemin)>max_t:
             max_t = len(chemin)
@@ -85,6 +88,8 @@ def main():
 
     init()
 
+    print("\n\n")
+
     global colSize, rowSize
     colSize = game.spriteBuilder.colsize
     rowSize = game.spriteBuilder.rowsize
@@ -100,16 +105,16 @@ def main():
     
     # on localise tous les états initiaux (loc du joueur)
     initStates = [o.get_rowcol() for o in game.layers['joueur']]
-    print ("Init states:", initStates)
+    #print ("Init states:", initStates)
     
     
     # on localise tous les objets ramassables
     goalStates = [o.get_rowcol() for o in game.layers['ramassable']]
-    print ("Goal states:", goalStates)
+    #print ("Goal states:", goalStates)
         
     # on localise tous les murs
     wallStates = [w.get_rowcol() for w in game.layers['obstacle']]
-    print ("Wall states:", wallStates)
+    #print ("Wall states:", wallStates)
     
     #-------------------------------
     # Placement aleatoire des fioles de couleur 
@@ -127,7 +132,7 @@ def main():
         while (x,y) in wallStates:
             x = random.randint(0,rowSize-1)
             y = random.randint(0,colSize-1)
-
+        
         #o.set_rowcol(tuplePos[i][0],tuplePos[i][1])
         o.set_rowcol(x,y)
         """
@@ -163,33 +168,44 @@ def main():
     #Inititalisation de tous les ordres possibles
     passage = [i for i in range(iter)]
     liste_passage = perms(passage)
+
+    agentFixe = createSpaceTime(colSize, rowSize)
     
     #Initialisation du minimum
     for i in passage:
         tree = Tree_space_time(posPlayers[i],goalStates[i])
         tree_liste.append(tree)
-        chemins.append(tree.etoile(initStates[i][0],initStates[i][1],wallStates, dico,rowSize, colSize))
+        chemins.append(tree.etoile(initStates[i][0],initStates[i][1],wallStates, dico, agentFixe, rowSize, colSize))
     
     chemin_opti = chemins
     passage_opti = passage
+    liste_but = [tree_liste[i].but for i in passage]
 
+    """
     #Recherche du passage minimisant le coup total
     for chm in liste_passage:
-            dico_tmp = createSpaceTime(colSize, rowSize)
+
+            dico_tmp  = createSpaceTime(colSize, rowSize)
+            agentFixe = createSpaceTime(colSize, rowSize)
+
             for i in chm:
                 tree = Tree_space_time(posPlayers[i],goalStates[i])
                 tree_liste.append(tree)
-                chemins_tmp.append(tree.etoile(initStates[i][0],initStates[i][1],wallStates, dico_tmp,rowSize, colSize))
+                chemins_tmp.append(tree.etoile(initStates[i][0],initStates[i][1],wallStates, dico_tmp, agentFixe,rowSize, colSize))
+
             if tempsExec(chemins_tmp)<tempsExec(chemin_opti):
                 chemin_opti = chemins_tmp
                 passage_opti = chm
                 dico = dico_tmp
-
+                liste_but = [tree_liste[i].but for i in chm]
+    """            
     chemins = chemin_opti
-
+    print("Ordre de passage optimisé ::",passage_opti)
     #print(chemins,passage)
 
     print("--------------------------\nCHEMINS DES AGENTS CONSTRUIT\n--------------------------\n")
+
+    print("\n",chemins,"\n")
 
     i=0
     while iter!=sum(score):
@@ -198,7 +214,7 @@ def main():
 
             row,col = posPlayers[j]
 
-            if (row,col) != tree_liste[j].but:
+            if (row,col) != liste_but[j]:
 
                 next_row, next_col = chemins[j][i]
                 players[j].set_rowcol(next_row,next_col)
@@ -208,7 +224,7 @@ def main():
                 posPlayers[j]=(row,col)
                         
                 # si on a  trouvé un objet on le ramasse
-                if (row,col) == tree_liste[j].but:
+                if (row,col) == liste_but[j]:
                     o = players[j].ramasse(game.layers)
                     game.mainiteration()
                     print ("Objet trouvé par le joueur ", j)
@@ -228,7 +244,12 @@ def main():
                     #goalStates.append((x,y)) # on ajoute ce nouveau goalState
                     #game.layers['ramassable'].add(o)
                     #game.mainiteration()
-                    
+            else:
+                if score[j]==0:
+                    players[j].ramasse(game.layers)
+                    game.mainiteration()
+                    print ("Objet trouvé par le joueur ", j)
+                    score[j]+=1
             
         i+=1
 
